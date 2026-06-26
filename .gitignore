@@ -1,0 +1,19 @@
+# Secretos
+db/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node / Next.js
+web/node_modules/
+web/.next/
+web/.env.local
+
+# Datos de scraping (se regeneran, no se versionan)
+scraper/output/
+
+# Sistema
+.DS_Store
+Thumbs.db
