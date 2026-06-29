@@ -24,13 +24,44 @@ const RADIOS_BUSQUEDA = [5000, 20000, 50000];
 const UBICACION_DEFAULT = { lat: 4.711, lng: -74.0721 }; // Bogotá, centro
 const MAX_TARJETAS_POR_TIPO = 5;
 
-type EstadoUbicacion = "buscando" | "ok" | "denegada" | "no-disponible";
+type EstadoUbicacion = "buscando" | "ok" | "denegada" | "no-disponible" | "manual";
 
 interface ResultadoTipo {
   cargando: boolean;
   puntos: PuntoCercano[];
   radioUsado: number | null;
   error: string | null;
+}
+
+interface GrupoSeccion {
+  objetos: ObjetoRaee[];
+  resultado: ResultadoTipo | undefined;
+}
+
+function agruparPorResultado(
+  objetosMapa: ObjetoRaee[],
+  resultados: Record<string, ResultadoTipo>
+): GrupoSeccion[] {
+  const grupos: GrupoSeccion[] = [];
+  const indicePorFirma = new Map<string, number>();
+
+  objetosMapa.forEach((objeto) => {
+    const resultado = resultados[objeto.tipoRaee];
+    const listo = resultado && !resultado.cargando && !resultado.error;
+    const firma = listo
+      ? `puntos:${[...resultado!.puntos].sort((a, b) => a.id - b.id).map((p) => p.id).join(",")}`
+      : `pendiente:${objeto.tipoRaee}`;
+
+    const indiceExistente = indicePorFirma.get(firma);
+    if (indiceExistente !== undefined) {
+      grupos[indiceExistente].objetos.push(objeto);
+    } else {
+      indicePorFirma.set(firma, grupos.length);
+      grupos.push({ objetos: [objeto], resultado });
+    }
+  });
+
+  return grupos;
 }
 
 export default function MapaContenido() {
@@ -48,6 +79,7 @@ export default function MapaContenido() {
   const [estadoUbicacion, setEstadoUbicacion] = useState<EstadoUbicacion>("buscando");
   const [resultados, setResultados] = useState<Record<string, ResultadoTipo>>({});
   const [elegidos, setElegidos] = useState<Record<string, number>>({});
+  const [modoReubicar, setModoReubicar] = useState(false);
 
   function solicitarUbicacion() {
     setEstadoUbicacion("buscando");
@@ -67,6 +99,14 @@ export default function MapaContenido() {
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
+  }
+
+  function elegirUbicacionManual(lat: number, lng: number) {
+    setElegidos({});
+    setResultados({});
+    setUbicacion({ lat, lng });
+    setEstadoUbicacion("manual");
+    setModoReubicar(false);
   }
 
   useEffect(() => {
@@ -157,6 +197,17 @@ export default function MapaContenido() {
     : null;
 
   const etiquetaTitulo = objetos.map((o) => o.etiqueta).join(" + ") || "objeto";
+  const grupos = agruparPorResultado(objetosMapa, resultados);
+
+  function elegirPuntoEnGrupo(grupo: GrupoSeccion, puntoId: number) {
+    setElegidos((actual) => {
+      const nuevo = { ...actual };
+      grupo.objetos.forEach((o) => {
+        nuevo[o.tipoRaee] = puntoId;
+      });
+      return nuevo;
+    });
+  }
 
   return (
     <main className="flex flex-1 flex-col bg-gray-50">
@@ -182,12 +233,30 @@ export default function MapaContenido() {
           Tu navegador no soporta geolocalización — mostrando resultados desde Bogotá.
         </div>
       )}
+      {modoReubicar && (
+        <div className="bg-emerald-50 px-4 py-2 text-xs text-emerald-800">
+          Toca un punto del mapa para buscar desde esa ubicación.{" "}
+          <button onClick={() => setModoReubicar(false)} className="font-medium underline">
+            Cancelar
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col md:flex-row">
         <section className="order-2 flex-1 overflow-y-auto p-4 md:order-1 md:max-w-sm">
-          {estadoUbicacion === "buscando" && (
-            <p className="text-sm text-gray-500">Buscando tu ubicación…</p>
-          )}
+          <div className="mb-3 flex items-center justify-between">
+            {estadoUbicacion === "buscando" ? (
+              <p className="text-sm text-gray-500">Buscando tu ubicación…</p>
+            ) : (
+              <span />
+            )}
+            <button
+              onClick={() => setModoReubicar((m) => !m)}
+              className="text-xs font-medium text-emerald-700 underline"
+            >
+              📍 Buscar desde otro punto
+            </button>
+          </div>
 
           <div className="flex flex-col gap-3">
             {objetosContacto.map((objeto) => (
@@ -199,12 +268,16 @@ export default function MapaContenido() {
               />
             ))}
 
-            {objetosMapa.map((objeto) => {
-              const resultado = resultados[objeto.tipoRaee];
+            {grupos.map((grupo) => {
+              const resultado = grupo.resultado;
+              const etiqueta = grupo.objetos.map((o) => o.etiqueta).join(" + ");
+              const iconos = grupo.objetos.map((o) => o.icono).join(" ");
+              const idElegidoGrupo = elegidos[grupo.objetos[0].tipoRaee];
+
               return (
-                <div key={objeto.id}>
+                <div key={grupo.objetos.map((o) => o.id).join("+")}>
                   <h2 className="mb-1 flex items-center gap-1 text-sm font-semibold text-gray-800">
-                    <span>{objeto.icono}</span> {objeto.etiqueta}
+                    <span>{iconos}</span> {etiqueta}
                   </h2>
 
                   {!resultado || resultado.cargando ? (
@@ -213,7 +286,7 @@ export default function MapaContenido() {
                     <p className="text-sm text-red-600">{resultado.error}</p>
                   ) : resultado.puntos.length === 0 ? (
                     <p className="text-sm text-gray-500">
-                      No encontramos puntos cercanos para {objeto.etiqueta.toLowerCase()}.
+                      No encontramos puntos cercanos para {etiqueta.toLowerCase()}.
                     </p>
                   ) : (
                     <>
@@ -227,10 +300,8 @@ export default function MapaContenido() {
                           <div key={p.id}>
                             <TarjetaPunto
                               punto={p}
-                              seleccionado={elegidos[objeto.tipoRaee] === p.id}
-                              onClick={() =>
-                                setElegidos((actual) => ({ ...actual, [objeto.tipoRaee]: p.id }))
-                              }
+                              seleccionado={idElegidoGrupo === p.id}
+                              onClick={() => elegirPuntoEnGrupo(grupo, p.id)}
                             />
                             <Link
                               href={`/punto/${p.id}`}
@@ -277,12 +348,15 @@ export default function MapaContenido() {
               puntos={todosLosPuntos}
               ubicacion={ubicacion}
               puntosElegidosIds={idsElegidos}
+              modoSeleccionUbicacion={modoReubicar}
+              onElegirUbicacion={elegirUbicacionManual}
               onSeleccionarPunto={(id) => {
                 const objeto = objetosMapa.find((o) =>
                   resultados[o.tipoRaee]?.puntos.some((p) => p.id === id)
                 );
                 if (objeto) {
-                  setElegidos((actual) => ({ ...actual, [objeto.tipoRaee]: id }));
+                  const grupo = grupos.find((g) => g.objetos.includes(objeto));
+                  if (grupo) elegirPuntoEnGrupo(grupo, id);
                 }
               }}
             />

@@ -1,5 +1,6 @@
-// Objetos del día a día, no categorías técnicas del gestor de residuos.
-// Orden por frecuencia esperada de uso (ver 04_capa_comportamiento.md).
+// Categorías amplias, no objetos individuales — ver 04_capa_comportamiento.md.
+// El filtrado real es por sistema (no por punto), así que reutilizamos el tipo
+// de RAEE que ya está vinculado a los sistemas correctos en la base de datos.
 
 export interface ContactoFallback {
   mensaje: string;
@@ -29,38 +30,42 @@ export const CONTACTO_BATERIA_CARRO: ContactoFallback = {
 };
 
 export const OBJETOS_RAEE: ObjetoRaee[] = [
-  { id: "celular", etiqueta: "Celular", icono: "📱", tipoRaee: "Celular" },
-  { id: "auriculares", etiqueta: "Auriculares", icono: "🎧", tipoRaee: "Audífono" },
-  { id: "cargador", etiqueta: "Cargador / Cable", icono: "🔌", tipoRaee: "Cable" },
-  { id: "pila", etiqueta: "Pila / Batería", icono: "🔋", tipoRaee: "Pila" },
-  { id: "computador", etiqueta: "Computador", icono: "💻", tipoRaee: "Computador" },
-  { id: "pantalla", etiqueta: "Pantalla / Monitor", icono: "🖥️", tipoRaee: "Monitor" },
-  { id: "bombilla", etiqueta: "Bombilla / Luminaria", icono: "💡", tipoRaee: "Bombilla" },
   {
-    id: "electrodomestico",
-    etiqueta: "Electrodomésticos",
-    icono: "🧺",
-    tipoRaee: "Electrodoméstico",
-    contacto: CONTACTO_LINEA_BLANCA,
+    id: "equipos_electronicos",
+    etiqueta: "Equipos electrónicos",
+    icono: "💻",
+    tipoRaee: "Celular", // mismos sistemas (Lito, EcoCómputo) para todo equipo electrónico
   },
   {
-    id: "nevera",
-    etiqueta: "Nevera",
+    id: "electrodomesticos_pequenos",
+    etiqueta: "Electrodomésticos pequeños",
+    icono: "🧺",
+    tipoRaee: "Electrodoméstico",
+  },
+  {
+    id: "electrodomesticos_grandes",
+    etiqueta: "Electrodomésticos grandes",
     icono: "🧊",
     tipoRaee: "Nevera",
     contacto: CONTACTO_LINEA_BLANCA,
   },
+  { id: "bombillos", etiqueta: "Bombillos", icono: "💡", tipoRaee: "Luminaria" },
+  { id: "pilas", etiqueta: "Pilas", icono: "🔋", tipoRaee: "Pila" },
   {
     id: "bateria_carro",
-    etiqueta: "Batería de carro",
+    etiqueta: "Baterías de carro",
     icono: "🔧",
     tipoRaee: "Batería de plomo-ácido",
     contacto: CONTACTO_BATERIA_CARRO,
   },
 ];
 
-export const OBJETO_DEFAULT_ID = "celular";
+export const OBJETO_DEFAULT_ID = "equipos_electronicos";
 
 export function buscarObjetoPorTipo(tipoRaee: string): ObjetoRaee | undefined {
   return OBJETOS_RAEE.find((o) => o.tipoRaee === tipoRaee);
+}
+
+export function buscarObjetoPorId(id: string): ObjetoRaee | undefined {
+  return OBJETOS_RAEE.find((o) => o.id === id);
 }

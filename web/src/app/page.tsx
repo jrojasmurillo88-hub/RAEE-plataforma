@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { OBJETOS_RAEE, OBJETO_DEFAULT_ID } from "@/lib/objetos";
 import { obtenerOnboarding } from "@/lib/onboarding";
 import Onboarding from "@/components/Onboarding";
+import BuscadorObjeto from "@/components/BuscadorObjeto";
 
 export default function InicioPage() {
   const router = useRouter();
@@ -24,6 +25,10 @@ export default function InicioPage() {
       else nuevo.add(id);
       return nuevo;
     });
+  }
+
+  function seleccionarDesdeBuscador(id: string) {
+    setSeleccionados((actual) => new Set(actual).add(id));
   }
 
   function continuar() {
@@ -72,10 +77,14 @@ export default function InicioPage() {
           })}
         </div>
 
+        <div className="text-center">
+          <BuscadorObjeto onEncontrado={seleccionarDesdeBuscador} />
+        </div>
+
         <button
           onClick={continuar}
           disabled={seleccionados.size === 0}
-          className="mt-6 w-full rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-40"
+          className="mt-6 w-full rounded-xl bg-emerald-600 px-4 py-3.5 text-lg font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-40"
         >
           {seleccionados.size > 1
             ? `Buscar puntos para ${seleccionados.size} objetos`

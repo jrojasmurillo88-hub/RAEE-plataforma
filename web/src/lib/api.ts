@@ -40,12 +40,20 @@ export type TipoReporte =
   | "direccion_incorrecta"
   | "otro";
 
+const TIMEOUT_MS = 30000; // el plan gratuito de Render puede tardar en despertar
+
 async function obtenerJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(url, init);
-  if (!resp.ok) {
-    throw new Error(`Error ${resp.status} consultando ${url}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const resp = await fetch(url, { ...init, signal: controller.signal });
+    if (!resp.ok) {
+      throw new Error(`Error ${resp.status} consultando ${url}`);
+    }
+    return await resp.json();
+  } finally {
+    clearTimeout(timer);
   }
-  return resp.json();
 }
 
 export function fetchTiposRaee(): Promise<TipoRaee[]> {

@@ -1,6 +1,6 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { useEffect } from "react";
 import Link from "next/link";
@@ -64,15 +64,34 @@ function AjustarVista({
   return null;
 }
 
+function SelectorUbicacion({
+  activo,
+  onElegir,
+}: {
+  activo: boolean;
+  onElegir?: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(e) {
+      if (activo) onElegir?.(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 export default function MapaPuntos({
   puntos,
   ubicacion,
   puntosElegidosIds = [],
+  modoSeleccionUbicacion = false,
+  onElegirUbicacion,
   onSeleccionarPunto,
 }: {
   puntos: PuntoCercano[];
   ubicacion: { lat: number; lng: number };
   puntosElegidosIds?: number[];
+  modoSeleccionUbicacion?: boolean;
+  onElegirUbicacion?: (lat: number, lng: number) => void;
   onSeleccionarPunto?: (id: number) => void;
 }) {
   return (
@@ -80,9 +99,10 @@ export default function MapaPuntos({
       center={[ubicacion.lat, ubicacion.lng]}
       zoom={14}
       scrollWheelZoom
-      className="h-full w-full"
+      className={`h-full w-full ${modoSeleccionUbicacion ? "cursor-crosshair" : ""}`}
     >
       <AjustarVista ubicacion={ubicacion} puntos={puntos} />
+      <SelectorUbicacion activo={modoSeleccionUbicacion} onElegir={onElegirUbicacion} />
       <TileLayer
         attribution="© OpenStreetMap contributors"
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

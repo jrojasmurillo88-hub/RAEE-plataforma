@@ -85,10 +85,10 @@ export default function Onboarding({ onCompletar }: { onCompletar: () => void })
     <main className="flex flex-1 flex-col items-center justify-center bg-gray-50 px-6 py-10">
       <div className="w-full max-w-sm text-center">
         <h1 className="text-xl font-bold text-gray-900">
-          ¿Tienes un dispositivo que cambiar próximamente?
+          ¿Tienes un dispositivo que entregar próximamente?
         </h1>
         <p className="mt-2 text-sm text-gray-500">
-          Definir un momento te ayuda a no postergarlo.
+          Te enviamos un recordatorio en la fecha que pongas.
         </p>
 
         <div className="mt-6 flex flex-col gap-2">
