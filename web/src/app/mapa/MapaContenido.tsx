@@ -252,7 +252,7 @@ export default function MapaContenido() {
             )}
             <button
               onClick={() => setModoReubicar((m) => !m)}
-              className="text-xs font-medium text-emerald-700 underline"
+              className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white underline decoration-2 underline-offset-2 shadow hover:bg-emerald-700"
             >
               📍 Buscar desde otro punto
             </button>
