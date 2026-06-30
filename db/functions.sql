@@ -53,6 +53,7 @@ BEGIN
               )
           AND (_tipo_raee IS NULL OR tr.nombre = _tipo_raee)
         ORDER BY p.id, distancia_metros
+        OFFSET 0 -- fuerza a Postgres a materializar el DISTINCT ON antes del ORDER BY externo
     ) puntos_unicos
     ORDER BY distancia_metros
     LIMIT 20;

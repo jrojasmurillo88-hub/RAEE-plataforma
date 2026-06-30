@@ -64,6 +64,41 @@ function AjustarVista({
   return null;
 }
 
+// Cuando varios puntos comparten exactamente las mismas coordenadas (ej. una
+// misma dirección con varios registros internos), Leaflet los apila uno
+// encima del otro y solo se ve/puede tocar el de arriba. Los separamos en un
+// pequeño círculo para que todos queden visibles y sean clicables.
+function calcularPosicionesVisibles(
+  puntos: PuntoCercano[]
+): Map<number, { posicion: [number, number]; tamanoGrupo: number }> {
+  const grupos = new Map<string, PuntoCercano[]>();
+  puntos.forEach((p) => {
+    const clave = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
+    const grupo = grupos.get(clave);
+    if (grupo) grupo.push(p);
+    else grupos.set(clave, [p]);
+  });
+
+  const RADIO_GRADOS = 0.00012; // ~13 metros
+  const resultado = new Map<number, { posicion: [number, number]; tamanoGrupo: number }>();
+
+  grupos.forEach((grupo) => {
+    if (grupo.length === 1) {
+      resultado.set(grupo[0].id, { posicion: [grupo[0].lat, grupo[0].lng], tamanoGrupo: 1 });
+      return;
+    }
+    grupo.forEach((p, i) => {
+      const angulo = (2 * Math.PI * i) / grupo.length;
+      resultado.set(p.id, {
+        posicion: [p.lat + RADIO_GRADOS * Math.cos(angulo), p.lng + RADIO_GRADOS * Math.sin(angulo)],
+        tamanoGrupo: grupo.length,
+      });
+    });
+  });
+
+  return resultado;
+}
+
 function SelectorUbicacion({
   activo,
   onElegir,
@@ -94,6 +129,8 @@ export default function MapaPuntos({
   onElegirUbicacion?: (lat: number, lng: number) => void;
   onSeleccionarPunto?: (id: number) => void;
 }) {
+  const posiciones = calcularPosicionesVisibles(puntos);
+
   return (
     <MapContainer
       center={[ubicacion.lat, ubicacion.lng]}
@@ -110,26 +147,37 @@ export default function MapaPuntos({
       <Marker position={[ubicacion.lat, ubicacion.lng]} icon={iconoUsuario}>
         <Popup>Tu ubicación</Popup>
       </Marker>
-      {puntos.map((p) => (
-        <Marker
-          key={p.id}
-          position={[p.lat, p.lng]}
-          icon={puntosElegidosIds.includes(p.id) ? iconoPuntoElegido : iconoPunto}
-          eventHandlers={{
-            click: () => onSeleccionarPunto?.(p.id),
-          }}
-        >
-          <Popup>
-            <strong>{p.nombre}</strong>
-            <br />
-            {p.ciudad}
-            <br />
-            <Link href={`/punto/${p.id}`} className="text-emerald-700 underline">
-              Ver detalle y cómo llegar →
-            </Link>
-          </Popup>
-        </Marker>
-      ))}
+      {puntos.map((p) => {
+        const info = posiciones.get(p.id) ?? { posicion: [p.lat, p.lng] as [number, number], tamanoGrupo: 1 };
+        return (
+          <Marker
+            key={p.id}
+            position={info.posicion}
+            icon={puntosElegidosIds.includes(p.id) ? iconoPuntoElegido : iconoPunto}
+            eventHandlers={{
+              click: () => onSeleccionarPunto?.(p.id),
+            }}
+          >
+            <Popup>
+              <strong>{p.nombre}</strong>
+              <br />
+              {p.ciudad}
+              {info.tamanoGrupo > 1 && (
+                <>
+                  <br />
+                  <span style={{ fontSize: "11px", color: "#92400e" }}>
+                    Hay {info.tamanoGrupo} puntos registrados en esta misma dirección.
+                  </span>
+                </>
+              )}
+              <br />
+              <Link href={`/punto/${p.id}`} className="text-emerald-700 underline">
+                Ver detalle y cómo llegar →
+              </Link>
+            </Popup>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }
