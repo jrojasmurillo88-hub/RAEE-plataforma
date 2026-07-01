@@ -141,8 +141,8 @@ export default function MapaPuntos({
       <AjustarVista ubicacion={ubicacion} puntos={puntos} />
       <SelectorUbicacion activo={modoSeleccionUbicacion} onElegir={onElegirUbicacion} />
       <TileLayer
-        attribution="© OpenStreetMap contributors"
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
       <Marker position={[ubicacion.lat, ubicacion.lng]} icon={iconoUsuario}>
         <Popup>Tu ubicación</Popup>
