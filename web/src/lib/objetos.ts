@@ -6,6 +6,8 @@ export interface ContactoFallback {
   mensaje: string;
   lineaCelular: string;
   lineaFija: string;
+  linkUrl?: string;
+  linkLabel?: string;
 }
 
 export interface ObjetoRaee {
@@ -21,6 +23,8 @@ export const CONTACTO_LINEA_BLANCA: ContactoFallback = {
     "Los electrodomésticos grandes no se dejan en un punto — Red Verde los recoge en tu casa.",
   lineaCelular: "317 405 0510",
   lineaFija: "(601) 443 1940",
+  linkUrl: "https://www.redverde.co/formulario-recoleccion/",
+  linkLabel: "Solicitar recogida en redverde.co",
 };
 
 export const CONTACTO_BATERIA_CARRO: ContactoFallback = {

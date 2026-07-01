@@ -16,7 +16,7 @@ export default function TarjetaContacto({
         <span className="font-semibold text-gray-900">{etiqueta}</span>
       </div>
       <p className="mt-2 text-sm text-gray-700">{contacto.mensaje}</p>
-      <div className="mt-3 flex flex-col gap-1 text-sm">
+      <div className="mt-3 flex flex-col gap-2 text-sm">
         <a
           href={`tel:${contacto.lineaCelular.replace(/\s/g, "")}`}
           className="font-medium text-emerald-700 underline"
@@ -29,6 +29,16 @@ export default function TarjetaContacto({
         >
           ☎️ O al teléfono fijo {contacto.lineaFija}
         </a>
+        {contacto.linkUrl && (
+          <a
+            href={contacto.linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-block w-full rounded-lg bg-emerald-600 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            🌐 {contacto.linkLabel ?? contacto.linkUrl}
+          </a>
+        )}
       </div>
     </div>
   );
