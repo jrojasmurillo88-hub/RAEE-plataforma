@@ -71,7 +71,7 @@ export const COLORES_CATEGORIA: Record<string, string> = {
   equipos_electronicos:       "#10b981", // verde esmeralda — tech
   electrodomesticos_pequenos: "#f97316", // naranja — electrodomésticos
   bombillos:                  "#f59e0b", // amarillo/ámbar — luz
-  pilas:                      "#3b82f6", // azul — pilas/baterías
+  pilas:                      "#1d4ed8", // azul oscuro — pilas/baterías
 };
 
 export function buscarObjetoPorTipo(tipoRaee: string): ObjetoRaee | undefined {
