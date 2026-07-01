@@ -80,9 +80,9 @@ export default function PuntoDetallePage() {
 
         <Link
           href={`/reportar/${punto.id}`}
-          className="mt-4 block text-center text-sm text-gray-500 underline hover:text-gray-700"
+          className="mt-3 block w-full rounded-xl border-2 border-red-500 px-4 py-2.5 text-center text-sm font-semibold text-red-600 hover:bg-red-50"
         >
-          Reportar dato incorrecto
+          ⚠️ Reportar dato incorrecto
         </Link>
       </div>
     </main>
