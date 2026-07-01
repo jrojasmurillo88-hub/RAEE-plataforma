@@ -5,17 +5,9 @@ import L from "leaflet";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { PuntoCercano } from "@/lib/api";
+import { COLORES_CATEGORIA, OBJETOS_RAEE } from "@/lib/objetos";
 
-// Un color distinto por sistema para que el usuario identifique de un vistazo
-export const COLORES_SISTEMA: Record<string, string> = {
-  "EcoCómputo":            "#10b981", // verde esmeralda
-  "Pilas con el Ambiente": "#3b82f6", // azul
-  "Puntos Verdes Lito":    "#f59e0b", // amarillo/ámbar
-  "Lúmina":                "#8b5cf6", // morado
-  "Red Verde":             "#f97316", // naranja
-};
-
-const COLOR_DEFAULT = "#6b7280"; // gris para sistemas no mapeados
+const COLOR_DEFAULT = "#6b7280";
 
 const iconoUsuario = L.divIcon({
   className: "",
@@ -28,8 +20,8 @@ const iconoUsuario = L.divIcon({
   iconAnchor: [7, 7],
 });
 
-function crearIconoSistema(sistema: string, elegido: boolean): L.DivIcon {
-  const color = COLORES_SISTEMA[sistema] ?? COLOR_DEFAULT;
+function crearIcono(objetoId: string | undefined, elegido: boolean): L.DivIcon {
+  const color = (objetoId && COLORES_CATEGORIA[objetoId]) ?? COLOR_DEFAULT;
   const size = elegido ? 18 : 14;
   const borde = elegido ? "3px" : "2px";
   return L.divIcon({
@@ -116,6 +108,7 @@ export default function MapaPuntos({
   puntos,
   ubicacion,
   puntosElegidosIds = [],
+  puntoAObjetoId = new Map(),
   modoSeleccionUbicacion = false,
   onElegirUbicacion,
   onSeleccionarPunto,
@@ -123,29 +116,34 @@ export default function MapaPuntos({
   puntos: PuntoCercano[];
   ubicacion: { lat: number; lng: number };
   puntosElegidosIds?: number[];
+  puntoAObjetoId?: Map<number, string>;
   modoSeleccionUbicacion?: boolean;
   onElegirUbicacion?: (lat: number, lng: number) => void;
   onSeleccionarPunto?: (id: number) => void;
 }) {
   const posiciones = calcularPosicionesVisibles(puntos);
-  const sistemasVisibles = useMemo(
-    () => [...new Set(puntos.map((p) => p.sistema))].sort(),
+
+  // Categorías visibles en el mapa en este momento (para la leyenda)
+  const categoriasVisibles = useMemo(() => {
+    const ids = [...new Set(puntoAObjetoId.values())];
+    return ids
+      .map((id) => OBJETOS_RAEE.find((o) => o.id === id))
+      .filter(Boolean) as typeof OBJETOS_RAEE;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [puntos.map((p) => p.sistema).join(",")]
-  );
+  }, [[...puntoAObjetoId.values()].join(",")]);
 
   return (
     <div className="relative h-full w-full">
-      {sistemasVisibles.length > 0 && (
+      {categoriasVisibles.length > 0 && (
         <div className="absolute bottom-5 right-2 z-[1000] rounded-lg bg-white px-3 py-2 text-xs shadow-md">
-          <p className="mb-1 font-semibold text-gray-700">Sistemas</p>
-          {sistemasVisibles.map((s) => (
-            <div key={s} className="flex items-center gap-1.5 leading-relaxed">
+          <p className="mb-1 font-semibold text-gray-700">Categorías</p>
+          {categoriasVisibles.map((o) => (
+            <div key={o.id} className="flex items-center gap-1.5 leading-relaxed">
               <span
-                style={{ background: COLORES_SISTEMA[s] ?? COLOR_DEFAULT }}
+                style={{ background: COLORES_CATEGORIA[o.id] ?? COLOR_DEFAULT }}
                 className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full border border-white shadow-sm"
               />
-              <span className="text-gray-700">{s}</span>
+              <span className="text-gray-700">{o.icono} {o.etiqueta}</span>
             </div>
           ))}
         </div>
@@ -168,30 +166,35 @@ export default function MapaPuntos({
       {puntos.map((p) => {
         const info = posiciones.get(p.id) ?? { posicion: [p.lat, p.lng] as [number, number], tamanoGrupo: 1 };
         const elegido = puntosElegidosIds.includes(p.id);
+        const objetoId = puntoAObjetoId.get(p.id);
+        const objeto = OBJETOS_RAEE.find((o) => o.id === objetoId);
+        const color = (objetoId && COLORES_CATEGORIA[objetoId]) ?? COLOR_DEFAULT;
         return (
           <Marker
             key={p.id}
             position={info.posicion}
-            icon={crearIconoSistema(p.sistema, elegido)}
+            icon={crearIcono(objetoId, elegido)}
             eventHandlers={{ click: () => onSeleccionarPunto?.(p.id) }}
           >
             <Popup>
               <div style={{ fontSize: "13px", minWidth: "160px" }}>
                 <strong>{p.nombre}</strong>
                 <br />
-                <span
-                  style={{
-                    display: "inline-block",
-                    marginTop: "3px",
-                    padding: "1px 7px",
-                    borderRadius: "10px",
-                    background: COLORES_SISTEMA[p.sistema] ?? COLOR_DEFAULT,
-                    color: "white",
-                    fontSize: "11px",
-                  }}
-                >
-                  {p.sistema}
-                </span>
+                {objeto && (
+                  <span
+                    style={{
+                      display: "inline-block",
+                      marginTop: "3px",
+                      padding: "1px 7px",
+                      borderRadius: "10px",
+                      background: color,
+                      color: "white",
+                      fontSize: "11px",
+                    }}
+                  >
+                    {objeto.icono} {objeto.etiqueta}
+                  </span>
+                )}
                 <br />
                 <span style={{ color: "#6b7280", fontSize: "12px" }}>{p.ciudad}</span>
                 {info.tamanoGrupo > 1 && (

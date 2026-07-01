@@ -66,6 +66,14 @@ export const OBJETOS_RAEE: ObjetoRaee[] = [
 
 export const OBJETO_DEFAULT_ID = "equipos_electronicos";
 
+// Color por categoría de RAEE que buscó el usuario (no por sistema de posconsumo)
+export const COLORES_CATEGORIA: Record<string, string> = {
+  equipos_electronicos:       "#10b981", // verde esmeralda — tech
+  electrodomesticos_pequenos: "#f97316", // naranja — electrodomésticos
+  bombillos:                  "#f59e0b", // amarillo/ámbar — luz
+  pilas:                      "#3b82f6", // azul — pilas/baterías
+};
+
 export function buscarObjetoPorTipo(tipoRaee: string): ObjetoRaee | undefined {
   return OBJETOS_RAEE.find((o) => o.tipoRaee === tipoRaee);
 }

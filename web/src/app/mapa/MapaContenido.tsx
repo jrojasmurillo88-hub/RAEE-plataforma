@@ -177,8 +177,13 @@ export default function MapaContenido() {
   }, [ubicacion, parametroTipos]);
 
   const puntosPorId = new Map<number, PuntoCercano>();
+  const puntoAObjetoId = new Map<number, string>(); // para colorear por categoría buscada
   objetosMapa.forEach((o) => {
-    resultados[o.tipoRaee]?.puntos.forEach((p) => puntosPorId.set(p.id, p));
+    resultados[o.tipoRaee]?.puntos.forEach((p) => {
+      puntosPorId.set(p.id, p);
+      // Si un punto aparece en varias categorías, la primera gana el color
+      if (!puntoAObjetoId.has(p.id)) puntoAObjetoId.set(p.id, o.id);
+    });
   });
   const todosLosPuntos = Array.from(puntosPorId.values());
   const idsElegidos = Array.from(new Set(Object.values(elegidos)));
@@ -348,6 +353,7 @@ export default function MapaContenido() {
               puntos={todosLosPuntos}
               ubicacion={ubicacion}
               puntosElegidosIds={idsElegidos}
+              puntoAObjetoId={puntoAObjetoId}
               modoSeleccionUbicacion={modoReubicar}
               onElegirUbicacion={elegirUbicacionManual}
               onSeleccionarPunto={(id) => {
