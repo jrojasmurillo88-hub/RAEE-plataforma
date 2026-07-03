@@ -80,6 +80,7 @@ export default function MapaContenido() {
   const [resultados, setResultados] = useState<Record<string, ResultadoTipo>>({});
   const [elegidos, setElegidos] = useState<Record<string, number>>({});
   const [modoReubicar, setModoReubicar] = useState(false);
+  const [gruposColapsados, setGruposColapsados] = useState<Set<string>>(new Set());
 
   function solicitarUbicacion() {
     setEstadoUbicacion("buscando");
@@ -204,12 +205,28 @@ export default function MapaContenido() {
   const etiquetaTitulo = objetos.map((o) => o.etiqueta).join(" + ") || "objeto";
   const grupos = agruparPorResultado(objetosMapa, resultados);
 
+  function claveGrupo(grupo: GrupoSeccion) {
+    return grupo.objetos.map((o) => o.id).join("+");
+  }
+
   function elegirPuntoEnGrupo(grupo: GrupoSeccion, puntoId: number) {
     setElegidos((actual) => {
       const nuevo = { ...actual };
       grupo.objetos.forEach((o) => {
         nuevo[o.tipoRaee] = puntoId;
       });
+      return nuevo;
+    });
+    // Colapsar automáticamente para que el usuario vea las demás categorías
+    setGruposColapsados((actual) => new Set([...actual, claveGrupo(grupo)]));
+  }
+
+  function alternarColapso(grupo: GrupoSeccion) {
+    const clave = claveGrupo(grupo);
+    setGruposColapsados((actual) => {
+      const nuevo = new Set(actual);
+      if (nuevo.has(clave)) nuevo.delete(clave);
+      else nuevo.add(clave);
       return nuevo;
     });
   }
@@ -278,46 +295,74 @@ export default function MapaContenido() {
               const etiqueta = grupo.objetos.map((o) => o.etiqueta).join(" + ");
               const iconos = grupo.objetos.map((o) => o.icono).join(" ");
               const idElegidoGrupo = elegidos[grupo.objetos[0].tipoRaee];
+              const clave = claveGrupo(grupo);
+              const colapsado = gruposColapsados.has(clave);
+              const puntoElegido = resultado?.puntos.find((p) => p.id === idElegidoGrupo);
 
               return (
-                <div key={grupo.objetos.map((o) => o.id).join("+")}>
-                  <h2 className="mb-1 flex items-center gap-1 text-sm font-semibold text-gray-800">
-                    <span>{iconos}</span> {etiqueta}
-                  </h2>
+                <div key={clave} className="rounded-lg border border-gray-100">
+                  {/* Cabecera siempre visible — toca para colapsar/expandir */}
+                  <button
+                    onClick={() => alternarColapso(grupo)}
+                    className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left hover:bg-gray-50"
+                  >
+                    <span className="text-sm font-semibold text-gray-800">
+                      {iconos} {etiqueta}
+                    </span>
+                    <span className="text-gray-400">{colapsado ? "▾" : "▴"}</span>
+                  </button>
 
-                  {!resultado || resultado.cargando ? (
-                    <p className="text-sm text-gray-500">Buscando puntos cercanos…</p>
-                  ) : resultado.error ? (
-                    <p className="text-sm text-red-600">{resultado.error}</p>
-                  ) : resultado.puntos.length === 0 ? (
-                    <p className="text-sm text-gray-500">
-                      No encontramos puntos cercanos para {etiqueta.toLowerCase()}.
-                    </p>
-                  ) : (
-                    <>
-                      {resultado.radioUsado && resultado.radioUsado > RADIOS_BUSQUEDA[0] && (
-                        <p className="mb-1 text-xs text-gray-500">
-                          Ampliamos la búsqueda a {resultado.radioUsado / 1000} km.
-                        </p>
+                  {/* Resumen colapsado */}
+                  {colapsado && (
+                    <div className="px-3 pb-2 text-xs text-gray-600">
+                      {puntoElegido ? (
+                        <span className="font-medium text-emerald-700">
+                          ✓ {puntoElegido.nombre.split("–")[0].trim()}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">Sin punto seleccionado</span>
                       )}
-                      <div className="flex flex-col gap-2">
-                        {resultado.puntos.slice(0, MAX_TARJETAS_POR_TIPO).map((p) => (
-                          <div key={p.id}>
-                            <TarjetaPunto
-                              punto={p}
-                              seleccionado={idElegidoGrupo === p.id}
-                              onClick={() => elegirPuntoEnGrupo(grupo, p.id)}
-                            />
-                            <Link
-                              href={`/punto/${p.id}`}
-                              className="mt-1 inline-block text-xs text-emerald-700 underline"
-                            >
-                              Ver detalle →
-                            </Link>
+                    </div>
+                  )}
+
+                  {/* Lista expandida */}
+                  {!colapsado && (
+                    <div className="px-3 pb-3">
+                      {!resultado || resultado.cargando ? (
+                        <p className="text-sm text-gray-500">Buscando puntos cercanos…</p>
+                      ) : resultado.error ? (
+                        <p className="text-sm text-red-600">{resultado.error}</p>
+                      ) : resultado.puntos.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                          No encontramos puntos cercanos para {etiqueta.toLowerCase()}.
+                        </p>
+                      ) : (
+                        <>
+                          {resultado.radioUsado && resultado.radioUsado > RADIOS_BUSQUEDA[0] && (
+                            <p className="mb-1 text-xs text-gray-500">
+                              Ampliamos la búsqueda a {resultado.radioUsado / 1000} km.
+                            </p>
+                          )}
+                          <div className="flex flex-col gap-2">
+                            {resultado.puntos.slice(0, MAX_TARJETAS_POR_TIPO).map((p) => (
+                              <div key={p.id}>
+                                <TarjetaPunto
+                                  punto={p}
+                                  seleccionado={idElegidoGrupo === p.id}
+                                  onClick={() => elegirPuntoEnGrupo(grupo, p.id)}
+                                />
+                                <Link
+                                  href={`/punto/${p.id}`}
+                                  className="mt-1 inline-block text-xs text-emerald-700 underline"
+                                >
+                                  Ver detalle →
+                                </Link>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               );
