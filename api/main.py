@@ -47,8 +47,8 @@ HEADERS = {
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="RAEE Colombia API",
-    description="Puntos de disposición de residuos electrónicos en Colombia",
+    title="RAEEconecta API",
+    description="Puntos de recolección de residuos electrónicos en Colombia — RAEEconecta",
     version="0.1.0",
 )
 

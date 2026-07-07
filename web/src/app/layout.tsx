@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RAEE Colombia — Dónde botar tus residuos electrónicos",
+  title: "RAEEconecta — Encuentra dónde reciclar tus electrónicos",
   description:
-    "Encuentra el punto de recolección de RAEE más cercano en Colombia.",
+    "RAEEconecta: encuentra el punto de recolección de residuos electrónicos más cercano en Colombia.",
 };
 
 export default function RootLayout({
