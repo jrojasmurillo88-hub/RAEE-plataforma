@@ -8,7 +8,7 @@ import { fetchPuntosCercanos, type PuntoCercano } from "@/lib/api";
 import { buscarObjetoPorTipo, type ObjetoRaee } from "@/lib/objetos";
 import { construirUrlRutaGoogleMaps } from "@/lib/rutas";
 import { agregarCheckinPendiente } from "@/lib/checkins";
-import TarjetaPunto from "@/components/TarjetaPunto";
+import { formatDistancia, minutosCaminando, nivelConfianza, textoConfianza, COLOR_CONFIANZA } from "@/lib/formato";
 import TarjetaContacto from "@/components/TarjetaContacto";
 
 const MapaPuntos = dynamic(() => import("@/components/MapaPuntos"), {
@@ -84,6 +84,7 @@ export default function MapaContenido() {
   const [modoReubicar, setModoReubicar] = useState(false);
   const [gruposColapsados, setGruposColapsados] = useState<Set<string>>(new Set());
   const [demorando, setDemorando] = useState(false);
+  const [puntoExpandido, setPuntoExpandido] = useState<number | null>(null);
 
   function solicitarUbicacion() {
     setEstadoUbicacion("buscando");
@@ -367,22 +368,56 @@ export default function MapaContenido() {
                               Ampliamos la búsqueda a {resultado.radioUsado / 1000} km.
                             </p>
                           )}
-                          <div className="flex flex-col gap-2">
-                            {resultado.puntos.slice(0, MAX_TARJETAS_POR_TIPO).map((p) => (
-                              <div key={p.id}>
-                                <TarjetaPunto
-                                  punto={p}
-                                  seleccionado={idElegidoGrupo === p.id}
-                                  onClick={() => elegirPuntoEnGrupo(grupo, p.id)}
-                                />
-                                <Link
-                                  href={`/punto/${p.id}`}
-                                  className="mt-1 inline-block text-xs text-emerald-700 underline"
+                          <div className="flex flex-col gap-1.5">
+                            {resultado.puntos.slice(0, MAX_TARJETAS_POR_TIPO).map((p) => {
+                              const estaExpandido = puntoExpandido === p.id;
+                              const estaSeleccionado = idElegidoGrupo === p.id;
+                              return (
+                                <div
+                                  key={p.id}
+                                  className={`overflow-hidden rounded-lg border ${estaSeleccionado ? "border-emerald-400" : "border-gray-200"}`}
                                 >
-                                  Ver detalle →
-                                </Link>
-                              </div>
-                            ))}
+                                  {/* Fila compacta — toca para ver detalle */}
+                                  <button
+                                    onClick={() => setPuntoExpandido(estaExpandido ? null : p.id)}
+                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left ${estaSeleccionado ? "bg-emerald-50" : "bg-white hover:bg-gray-50"}`}
+                                  >
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-medium text-gray-900">{p.nombre}</p>
+                                      <p className="text-xs text-gray-500">
+                                        {formatDistancia(p.distancia_metros)} · 🚶 {minutosCaminando(p.distancia_metros)} min
+                                      </p>
+                                    </div>
+                                    {estaSeleccionado && <span className="text-xs font-bold text-emerald-600">✓</span>}
+                                    <span className="text-xs text-gray-400">{estaExpandido ? "▴" : "▾"}</span>
+                                  </button>
+
+                                  {/* Detalle expandido */}
+                                  {estaExpandido && (
+                                    <div className="border-t border-gray-100 bg-gray-50 px-3 py-2">
+                                      <p className="text-xs text-gray-500">{p.ciudad ?? "Ciudad no especificada"} · {p.sistema}</p>
+                                      <p className="mt-0.5 text-xs text-gray-500">
+                                        {COLOR_CONFIANZA[nivelConfianza(p.ultima_verificacion)]} {textoConfianza(p.ultima_verificacion)}
+                                      </p>
+                                      <div className="mt-2 flex gap-2">
+                                        <button
+                                          onClick={() => { elegirPuntoEnGrupo(grupo, p.id); setPuntoExpandido(null); }}
+                                          className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                                        >
+                                          ✓ Seleccionar
+                                        </button>
+                                        <Link
+                                          href={`/punto/${p.id}`}
+                                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                                        >
+                                          Ver más →
+                                        </Link>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </>
                       )}
