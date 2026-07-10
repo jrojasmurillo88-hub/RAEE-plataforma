@@ -64,6 +64,8 @@ function agruparPorResultado(
   return grupos;
 }
 
+const SEGUNDOS_AVISO_DEMORA = 8; // mostrar aviso si lleva más de estos segundos cargando
+
 export default function MapaContenido() {
   const searchParams = useSearchParams();
   const parametroTipos = searchParams.get("tipos") ?? searchParams.get("tipo") ?? "";
@@ -81,6 +83,7 @@ export default function MapaContenido() {
   const [elegidos, setElegidos] = useState<Record<string, number>>({});
   const [modoReubicar, setModoReubicar] = useState(false);
   const [gruposColapsados, setGruposColapsados] = useState<Set<string>>(new Set());
+  const [demorando, setDemorando] = useState(false);
 
   function solicitarUbicacion() {
     setEstadoUbicacion("buscando");
@@ -127,46 +130,56 @@ export default function MapaContenido() {
       }));
 
       (async () => {
-        for (const radio of RADIOS_BUSQUEDA) {
-          try {
-            const resultado = await fetchPuntosCercanos({
-              lat: ubicacion.lat,
-              lng: ubicacion.lng,
-              radio,
-              tipo: objeto.tipoRaee,
-            });
-            if (cancelado) return;
-            if (resultado.length > 0 || radio === RADIOS_BUSQUEDA[RADIOS_BUSQUEDA.length - 1]) {
-              setResultados((actual) => ({
-                ...actual,
-                [objeto.tipoRaee]: {
-                  cargando: false,
-                  puntos: resultado,
-                  radioUsado: radio,
-                  error: null,
-                },
-              }));
-              if (resultado.length > 0) {
-                setElegidos((actual) =>
-                  actual[objeto.tipoRaee] ? actual : { ...actual, [objeto.tipoRaee]: resultado[0].id }
-                );
+        const MAX_INTENTOS = 2;
+        for (let intento = 0; intento < MAX_INTENTOS; intento++) {
+          let fallo = false;
+          for (const radio of RADIOS_BUSQUEDA) {
+            try {
+              const resultado = await fetchPuntosCercanos({
+                lat: ubicacion.lat,
+                lng: ubicacion.lng,
+                radio,
+                tipo: objeto.tipoRaee,
+              });
+              if (cancelado) return;
+              if (resultado.length > 0 || radio === RADIOS_BUSQUEDA[RADIOS_BUSQUEDA.length - 1]) {
+                setResultados((actual) => ({
+                  ...actual,
+                  [objeto.tipoRaee]: {
+                    cargando: false,
+                    puntos: resultado,
+                    radioUsado: radio,
+                    error: null,
+                  },
+                }));
+                if (resultado.length > 0) {
+                  setElegidos((actual) =>
+                    actual[objeto.tipoRaee] ? actual : { ...actual, [objeto.tipoRaee]: resultado[0].id }
+                  );
+                }
+                return;
               }
-              return;
+            } catch {
+              if (cancelado) return;
+              fallo = true;
+              break; // salir del loop de radios, reintentar
             }
-          } catch {
-            if (!cancelado) {
-              setResultados((actual) => ({
-                ...actual,
-                [objeto.tipoRaee]: {
-                  cargando: false,
-                  puntos: [],
-                  radioUsado: null,
-                  error: "No pudimos cargar los puntos. ¿Está corriendo la API?",
-                },
-              }));
-            }
-            return;
           }
+          if (fallo && intento < MAX_INTENTOS - 1) {
+            // esperar 5s antes de reintentar (el servidor puede estar terminando de despertar)
+            await new Promise((r) => setTimeout(r, 5000));
+          }
+        }
+        if (!cancelado) {
+          setResultados((actual) => ({
+            ...actual,
+            [objeto.tipoRaee]: {
+              cargando: false,
+              puntos: [],
+              radioUsado: null,
+              error: "No pudimos conectar con el servidor. Recarga la página para intentar de nuevo.",
+            },
+          }));
         }
       })();
     });
@@ -176,6 +189,14 @@ export default function MapaContenido() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ubicacion, parametroTipos]);
+
+  // Mostrar aviso de demora si algún resultado lleva más de SEGUNDOS_AVISO_DEMORA cargando
+  const hayCargando = Object.values(resultados).some((r) => r.cargando);
+  useEffect(() => {
+    if (!hayCargando) { setDemorando(false); return; }
+    const timer = setTimeout(() => setDemorando(true), SEGUNDOS_AVISO_DEMORA * 1000);
+    return () => clearTimeout(timer);
+  }, [hayCargando]);
 
   const puntosPorId = new Map<number, PuntoCercano>();
   const puntoAObjetoIds = new Map<number, string[]>(); // lista de categorías por punto
@@ -329,7 +350,11 @@ export default function MapaContenido() {
                   {!colapsado && (
                     <div className="px-3 pb-3">
                       {!resultado || resultado.cargando ? (
-                        <p className="text-sm text-gray-500">Buscando puntos cercanos…</p>
+                        <p className="text-sm text-gray-500">
+                          {demorando
+                            ? "El servidor está despertando, un momento más…"
+                            : "Buscando…"}
+                        </p>
                       ) : resultado.error ? (
                         <p className="text-sm text-red-600">{resultado.error}</p>
                       ) : resultado.puntos.length === 0 ? (

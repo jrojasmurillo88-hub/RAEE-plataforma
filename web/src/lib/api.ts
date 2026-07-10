@@ -40,7 +40,7 @@ export type TipoReporte =
   | "direccion_incorrecta"
   | "otro";
 
-const TIMEOUT_MS = 30000; // el plan gratuito de Render puede tardar en despertar
+const TIMEOUT_MS = 300000; // 5 min — Render free puede tardar >90s en despertar
 
 async function obtenerJson<T>(url: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
