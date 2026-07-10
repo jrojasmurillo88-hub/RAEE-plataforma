@@ -9,6 +9,7 @@ import { buscarObjetoPorTipo, type ObjetoRaee } from "@/lib/objetos";
 import { construirUrlRutaGoogleMaps } from "@/lib/rutas";
 import { agregarCheckinPendiente } from "@/lib/checkins";
 import { formatDistancia, minutosCaminando, nivelConfianza, textoConfianza, COLOR_CONFIANZA } from "@/lib/formato";
+import { COLORES_CATEGORIA } from "@/lib/objetos";
 import TarjetaContacto from "@/components/TarjetaContacto";
 
 const MapaPuntos = dynamic(() => import("@/components/MapaPuntos"), {
@@ -301,6 +302,20 @@ export default function MapaContenido() {
             </button>
           </div>
 
+          {objetosMapa.length > 1 && (
+            <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-white px-3 py-2 text-xs shadow-sm border border-gray-100">
+              {objetosMapa.map((o) => (
+                <div key={o.id} className="flex items-center gap-1.5">
+                  <span
+                    className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full border border-white shadow-sm"
+                    style={{ background: COLORES_CATEGORIA[o.id] ?? "#6b7280" }}
+                  />
+                  <span className="text-gray-600">{o.icono} {o.etiqueta}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-col gap-3">
             {objetosContacto.map((objeto) => (
               <TarjetaContacto
@@ -388,7 +403,6 @@ export default function MapaContenido() {
                                         {formatDistancia(p.distancia_metros)} · 🚶 {minutosCaminando(p.distancia_metros)} min
                                       </p>
                                     </div>
-                                    {estaSeleccionado && <span className="text-xs font-bold text-emerald-600">✓</span>}
                                     <span className="text-xs text-gray-400">{estaExpandido ? "▴" : "▾"}</span>
                                   </button>
 
