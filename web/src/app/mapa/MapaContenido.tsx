@@ -130,7 +130,7 @@ export default function MapaContenido() {
       }));
 
       (async () => {
-        const MAX_INTENTOS = 2;
+        const MAX_INTENTOS = 15; // 15 × 10s = 2.5 min máximo esperando el cold start
         for (let intento = 0; intento < MAX_INTENTOS; intento++) {
           let fallo = false;
           for (const radio of RADIOS_BUSQUEDA) {
@@ -162,12 +162,11 @@ export default function MapaContenido() {
             } catch {
               if (cancelado) return;
               fallo = true;
-              break; // salir del loop de radios, reintentar
+              break;
             }
           }
           if (fallo && intento < MAX_INTENTOS - 1) {
-            // esperar 5s antes de reintentar (el servidor puede estar terminando de despertar)
-            await new Promise((r) => setTimeout(r, 5000));
+            await new Promise((r) => setTimeout(r, 10000));
           }
         }
         if (!cancelado) {
@@ -177,7 +176,7 @@ export default function MapaContenido() {
               cargando: false,
               puntos: [],
               radioUsado: null,
-              error: "No pudimos conectar con el servidor. Recarga la página para intentar de nuevo.",
+              error: "El servidor no respondió. Recarga la página para intentar de nuevo.",
             },
           }));
         }
