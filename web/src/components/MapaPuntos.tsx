@@ -31,15 +31,39 @@ function crearIcono(objetoIds: string[], elegido: boolean): L.DivIcon {
   } else {
     background = (objetoIds[0] && COLORES_CATEGORIA[objetoIds[0]]) ?? COLOR_DEFAULT;
   }
+
+  if (!elegido) {
+    return L.divIcon({
+      className: "",
+      html: `<div style="
+        width:${size}px; height:${size}px; border-radius:50%;
+        background:${background}; border:${borde} solid white;
+        box-shadow:0 1px 3px rgba(0,0,0,.4);
+      "></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+  }
+
+  // Punto seleccionado: aura verde con pulso, envuelve el punto de su color de categoría.
+  const halo = 40;
   return L.divIcon({
     className: "",
-    html: `<div style="
-      width:${size}px; height:${size}px; border-radius:50%;
-      background:${background}; border:${borde} solid white;
-      box-shadow:0 1px ${elegido ? 4 : 3}px rgba(0,0,0,${elegido ? ".5" : ".4"});
-    "></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    html: `<div style="width:${halo}px; height:${halo}px; position:relative;">
+      <div class="raee-marcador-seleccionado" style="
+        position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+        width:${size}px; height:${size}px; border-radius:50%;
+        background:rgba(16,185,129,.35);
+      "></div>
+      <div style="
+        position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+        width:${size}px; height:${size}px; border-radius:50%;
+        background:${background}; border:${borde} solid white;
+        box-shadow:0 0 6px 2px rgba(16,185,129,.7), 0 1px 4px rgba(0,0,0,.5);
+      "></div>
+    </div>`,
+    iconSize: [halo, halo],
+    iconAnchor: [halo / 2, halo / 2],
   });
 }
 
