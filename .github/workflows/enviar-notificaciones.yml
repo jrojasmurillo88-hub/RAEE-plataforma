@@ -1,0 +1,17 @@
+name: Enviar notificaciones push pendientes
+
+on:
+  schedule:
+    # cada hora, en el minuto 0
+    - cron: "0 * * * *"
+  workflow_dispatch: {} # permite dispararlo manualmente desde la pestaña Actions
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a /push/enviar-pendientes
+        run: |
+          curl -sS -X POST "${{ secrets.RAEE_API_URL }}/push/enviar-pendientes" \
+            -H "X-Cron-Secret: ${{ secrets.RAEE_CRON_SECRET }}" \
+            --fail-with-body

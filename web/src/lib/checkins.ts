@@ -5,6 +5,7 @@ export interface CheckinPendiente {
   puntoId: number;
   nombrePunto: string;
   sistema: string;
+  categoriaIds: string[]; // ids de ObjetoRaee que llevaron a este punto — define qué ítems ofrecer
   creadoEn: string; // ISO
   resuelto: boolean;
 }
@@ -28,11 +29,17 @@ export function agregarCheckinPendiente(datos: {
   puntoId: number;
   nombrePunto: string;
   sistema: string;
+  categoriaIds?: string[];
 }) {
   const actuales = leerTodos();
   // evitar duplicados para el mismo punto mientras esté pendiente
   if (actuales.some((c) => c.puntoId === datos.puntoId && !c.resuelto)) return;
-  actuales.push({ ...datos, creadoEn: new Date().toISOString(), resuelto: false });
+  actuales.push({
+    ...datos,
+    categoriaIds: datos.categoriaIds ?? [],
+    creadoEn: new Date().toISOString(),
+    resuelto: false,
+  });
   guardarTodos(actuales);
 }
 

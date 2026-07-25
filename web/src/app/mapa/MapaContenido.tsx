@@ -4,10 +4,12 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchPuntosCercanos, type PuntoCercano } from "@/lib/api";
+import { fetchPuntosCercanos, postEvento, type PuntoCercano } from "@/lib/api";
 import { buscarObjetoPorTipo, type ObjetoRaee } from "@/lib/objetos";
 import { construirUrlRutaGoogleMaps } from "@/lib/rutas";
 import { agregarCheckinPendiente } from "@/lib/checkins";
+import { obtenerSessionId } from "@/lib/sesion";
+import { programarRecordatorioPush } from "@/lib/push";
 import { formatDistancia, minutosCaminando, nivelConfianza, textoConfianza, COLOR_CONFIANZA } from "@/lib/formato";
 import { COLORES_CATEGORIA } from "@/lib/objetos";
 import TarjetaContacto from "@/components/TarjetaContacto";
@@ -241,6 +243,12 @@ export default function MapaContenido() {
     });
     // Colapsar automáticamente para que el usuario vea las demás categorías
     setGruposColapsados((actual) => new Set([...actual, claveGrupo(grupo)]));
+
+    // Analítica: qué puntos selecciona la gente y para qué categoría
+    const sessionId = obtenerSessionId();
+    grupo.objetos.forEach((o) => {
+      postEvento({ tipo: "seleccion_punto", punto_id: puntoId, tipo_raee: o.tipoRaee, session_id: sessionId }).catch(() => {});
+    });
   }
 
   function alternarColapso(grupo: GrupoSeccion) {
@@ -413,20 +421,17 @@ export default function MapaContenido() {
                                       <p className="mt-0.5 text-xs text-gray-500">
                                         {COLOR_CONFIANZA[nivelConfianza(p.ultima_verificacion)]} {textoConfianza(p.ultima_verificacion)}
                                       </p>
-                                      <div className="mt-2 flex gap-2">
-                                        <button
-                                          onClick={() => { elegirPuntoEnGrupo(grupo, p.id); setPuntoExpandido(null); }}
-                                          className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                                        >
-                                          ✓ Seleccionar
-                                        </button>
-                                        <Link
-                                          href={`/punto/${p.id}`}
-                                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
-                                        >
-                                          Ver más →
-                                        </Link>
-                                      </div>
+                                      {!estaSeleccionado && (
+                                        <p className="mt-2 text-xs text-gray-400">
+                                          📍 Tócalo en el mapa para elegirlo como tu punto.
+                                        </p>
+                                      )}
+                                      <Link
+                                        href={`/punto/${p.id}`}
+                                        className="mt-2 inline-block text-sm text-emerald-700 underline"
+                                      >
+                                        Ver más →
+                                      </Link>
                                     </div>
                                   )}
                                 </div>
@@ -447,15 +452,19 @@ export default function MapaContenido() {
               href={urlRuta}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() =>
-                destinosRuta.forEach((p) =>
+              onClick={() => {
+                const sessionId = obtenerSessionId();
+                destinosRuta.forEach((p) => {
                   agregarCheckinPendiente({
                     puntoId: p.id,
                     nombrePunto: p.nombre,
                     sistema: p.sistema,
-                  })
-                )
-              }
+                    categoriaIds: puntoAObjetoIds.get(p.id) ?? [],
+                  });
+                  postEvento({ tipo: "intencion_descarte", punto_id: p.id, session_id: sessionId }).catch(() => {});
+                  programarRecordatorioPush(p.id, p.nombre);
+                });
+              }}
               className="mt-4 block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-base font-semibold text-white shadow hover:bg-emerald-700"
             >
               {destinosRuta.length > 1

@@ -93,8 +93,48 @@ export function postReporte(body: {
 
 export function postEntrega(body: {
   punto_id: number;
-}): Promise<{ ok: boolean; conteo_zona: number }> {
+  items?: string[];
+}): Promise<{ ok: boolean; conteo_zona: number; peso_gramos: number | null }> {
   return obtenerJson(`${API_URL}/entregas`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export type TipoEvento = "seleccion_punto" | "intencion_descarte";
+
+export function postEvento(body: {
+  tipo: TipoEvento;
+  punto_id?: number;
+  tipo_raee?: string;
+  session_id?: string;
+}): Promise<{ ok: boolean }> {
+  return obtenerJson(`${API_URL}/eventos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function postPushSuscribir(body: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}): Promise<{ ok: boolean }> {
+  return obtenerJson(`${API_URL}/push/suscribir`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function postPushProgramar(body: {
+  endpoint: string;
+  punto_id: number;
+  nombre_punto: string;
+  horas_espera?: number;
+}): Promise<{ ok: boolean }> {
+  return obtenerJson(`${API_URL}/push/programar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

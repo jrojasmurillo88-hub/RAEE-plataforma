@@ -172,7 +172,6 @@ export default function MapaPuntos({
             key={p.id}
             position={info.posicion}
             icon={crearIcono(objetoIds, elegido)}
-            eventHandlers={{ click: () => onSeleccionarPunto?.(p.id) }}
           >
             <Popup>
               <div style={{ fontSize: "13px", minWidth: "160px" }}>
@@ -209,6 +208,31 @@ export default function MapaPuntos({
                       Hay {info.tamanoGrupo} puntos en esta misma dirección.
                     </span>
                   </>
+                )}
+                <br />
+                {elegido ? (
+                  <span style={{ display: "inline-block", marginTop: "6px", color: "#047857", fontWeight: 600, fontSize: "12px" }}>
+                    ✓ Punto seleccionado
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onSeleccionarPunto?.(p.id)}
+                    style={{
+                      display: "block",
+                      marginTop: "6px",
+                      width: "100%",
+                      background: "#059669",
+                      color: "white",
+                      fontWeight: 600,
+                      fontSize: "12.5px",
+                      padding: "6px 10px",
+                      borderRadius: "8px",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ✓ Seleccionar este punto
+                  </button>
                 )}
                 <br />
                 <Link href={`/punto/${p.id}`} className="text-emerald-700 underline">

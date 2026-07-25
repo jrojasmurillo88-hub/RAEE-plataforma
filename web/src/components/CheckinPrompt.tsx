@@ -9,16 +9,19 @@ import {
 } from "@/lib/checkins";
 import { postEntrega, postReporte } from "@/lib/api";
 import { pesoEstimadoGramos } from "@/lib/pesos";
+import { itemsPorCategorias, formatearPeso } from "@/lib/itemsRaee";
 
 const UMBRAL_NORMA_SOCIAL = 5;
 const MS_ANTES_DE_AVISAR_DEMORA = 4000;
 
-type Paso = "pregunta" | "impacto" | "cerrado" | "enviando" | "error";
+type Paso = "pregunta" | "items" | "impacto" | "cerrado" | "enviando" | "error";
 
 export default function CheckinPrompt() {
   const [checkin, setCheckin] = useState<CheckinPendiente | null>(null);
   const [paso, setPaso] = useState<Paso>("pregunta");
   const [conteoZona, setConteoZona] = useState(0);
+  const [pesoReal, setPesoReal] = useState<number | null>(null);
+  const [itemsSeleccionados, setItemsSeleccionados] = useState<Set<string>>(new Set());
   const [demorando, setDemorando] = useState(false);
   const [accionPendiente, setAccionPendiente] = useState<
     "entregado" | "cerrado" | null
@@ -39,17 +42,33 @@ export default function CheckinPrompt() {
 
   function siguienteCheckin() {
     setPaso("pregunta");
+    setItemsSeleccionados(new Set());
     setCheckin(obtenerProximoCheckinListo());
   }
 
   if (!checkin) return null;
 
-  async function responderEntregado() {
+  function irAItems() {
+    setPaso("items");
+  }
+
+  function alternarItem(id: string) {
+    setItemsSeleccionados((actual) => {
+      const nuevo = new Set(actual);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
+  }
+
+  async function confirmarEntrega() {
     setAccionPendiente("entregado");
     setPaso("enviando");
     try {
-      const resp = await postEntrega({ punto_id: checkin!.puntoId });
+      const items = Array.from(itemsSeleccionados);
+      const resp = await postEntrega({ punto_id: checkin!.puntoId, items });
       setConteoZona(resp.conteo_zona);
+      setPesoReal(resp.peso_gramos);
       marcarResuelto(checkin!.puntoId);
       setPaso("impacto");
     } catch {
@@ -75,11 +94,12 @@ export default function CheckinPrompt() {
   }
 
   function reintentar() {
-    if (accionPendiente === "entregado") responderEntregado();
+    if (accionPendiente === "entregado") confirmarEntrega();
     else if (accionPendiente === "cerrado") responderCerrado();
   }
 
-  const peso = pesoEstimadoGramos(checkin.sistema);
+  const itemsDisponibles = itemsPorCategorias(checkin.categoriaIds);
+  const peso = pesoReal ?? pesoEstimadoGramos(checkin.sistema);
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 px-4">
@@ -91,7 +111,7 @@ export default function CheckinPrompt() {
             </p>
             <div className="mt-4 flex flex-col gap-2">
               <button
-                onClick={responderEntregado}
+                onClick={irAItems}
                 className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
               >
                 Sí, lo entregué
@@ -109,6 +129,45 @@ export default function CheckinPrompt() {
                 El punto estaba cerrado
               </button>
             </div>
+          </>
+        )}
+
+        {paso === "items" && (
+          <>
+            <p className="text-base font-semibold text-gray-900">
+              ¿Qué entregaste en {checkin.nombrePunto}?
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Marca todo lo que dejaste ahí — nos ayuda a calcular el impacto real.
+            </p>
+            <div className="mt-3 flex max-h-64 flex-col gap-1.5 overflow-y-auto">
+              {itemsDisponibles.map((item) => {
+                const marcado = itemsSeleccionados.has(item.id);
+                return (
+                  <label
+                    key={item.id}
+                    className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm ${
+                      marcado ? "border-emerald-400 bg-emerald-50" : "border-gray-200"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={marcado}
+                      onChange={() => alternarItem(item.id)}
+                      className="h-4 w-4 accent-emerald-600"
+                    />
+                    <span className="flex-1 text-gray-800">{item.etiqueta}</span>
+                    <span className="text-xs text-gray-400">≈{formatearPeso(item.pesoGramosAprox)}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <button
+              onClick={confirmarEntrega}
+              className="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              {itemsSeleccionados.size > 0 ? "Confirmar entrega" : "Confirmar sin especificar"}
+            </button>
           </>
         )}
 
@@ -147,8 +206,7 @@ export default function CheckinPrompt() {
         {paso === "impacto" && (
           <>
             <p className="text-base font-semibold text-gray-900">
-              🌱 Entregaste aproximadamente {peso >= 1000 ? `${(peso / 1000).toFixed(1)} kg` : `${peso} g`} de
-              residuos electrónicos.
+              🌱 Entregaste aproximadamente {formatearPeso(peso)} de residuos electrónicos.
             </p>
             <p className="mt-2 text-sm text-gray-600">
               Eso es parte de las miles de toneladas que Colombia recupera cada año.
